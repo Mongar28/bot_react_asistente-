@@ -1,0 +1,6 @@
+.env
+.venv
+credentials.json
+credentials_2.json
+token.json
+token_2.json
