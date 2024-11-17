@@ -59,13 +59,12 @@ El proyecto utiliza las siguientes tecnologías y herramientas clave:
 
 ### Archivos clave
 
-- **`bot.py`**: Contiene la lógica principal del bot, incluyendo el manejo de mensajes de texto y voz.
-- **`graph.py`**: Define el agente reactivo utilizando LangChain, configura los modelos de OpenAI y las herramientas del bot.
+- **`react_graph.py.py`**: Contiene la lógica principal del bot, incluyendo el manejo de mensajes de texto y voz.
 - **`requirements.txt`**: Lista de dependencias necesarias para ejecutar el proyecto.
 
 ## Personalización
 
-1. **Cambiar el nombre del asistente**: Puedes modificar el nombre de la persona a la que debe asistir el bot ajustando el prompt en el archivo `graph.py`:
+1. **Cambiar el nombre del asistente**: Puedes modificar el nombre de la persona a la que debe asistir el bot ajustando el prompt en el archivo `react_graph.py`:
    
    ```python
    system_prompt = ChatPromptTemplate.from_messages(
@@ -83,7 +82,7 @@ El proyecto utiliza las siguientes tecnologías y herramientas clave:
 Para iniciar el bot, simplemente ejecuta el siguiente comando:
 
 ```bash
-python bot.py
+python  react_graph.py
 ```
 
 El bot comenzará a escuchar en Telegram y procesará tanto mensajes de texto como mensajes de voz.
