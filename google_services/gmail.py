@@ -4,17 +4,17 @@ Módulo para interactuar con Gmail API.
 
 from typing import Optional, Dict, List
 from googleapiclient.discovery import build
-from .auth import GoogleAuth, GMAIL_SCOPES
+from .auth import default_auth
 import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 class Gmail:
-    """Clase para manejar operaciones con Gmail."""
+    """Clase para interactuar con Gmail API."""
     
     def __init__(self):
         """Inicializa el servicio de Gmail."""
-        self.auth = GoogleAuth(GMAIL_SCOPES)
+        self.auth = default_auth
         self.service = None
     
     def _get_service(self):

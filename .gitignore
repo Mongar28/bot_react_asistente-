@@ -41,6 +41,8 @@ token.json
 token_2.json
 client_secrets.json
 *.pickle
+google_credentials.json
+token.json
 
 # Logs and databases
 *.log

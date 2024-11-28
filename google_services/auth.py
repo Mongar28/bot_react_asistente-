@@ -73,13 +73,18 @@ class GoogleAuth:
         return self._credentials
 
 # Scopes predefinidos para diferentes servicios
-CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar']
+CALENDAR_SCOPES = [
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/calendar.events',
+    'https://www.googleapis.com/auth/calendar.readonly'
+]
 GMAIL_SCOPES = [
     'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.send'
+    'https://www.googleapis.com/auth/gmail.send',
+    'https://www.googleapis.com/auth/gmail.modify'
 ]
 
-# Instancia por defecto con todos los scopes
-DEFAULT_SCOPES = CALENDAR_SCOPES + GMAIL_SCOPES
-default_auth = GoogleAuth(DEFAULT_SCOPES)
+# Instancia por defecto con todos los scopes combinados
+ALL_SCOPES = CALENDAR_SCOPES + GMAIL_SCOPES
+default_auth = GoogleAuth(ALL_SCOPES)
 get_credentials = default_auth.get_credentials

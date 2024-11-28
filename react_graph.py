@@ -8,13 +8,19 @@ from langgraph.prebuilt import create_react_agent
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_tools.agent_tools import (
-    redact_email, gmail_send_email, gmail_list_messages,
-    calendar_list_events, calendar_create_event,
-    send_message, get_vitae_info, get_current_date_and_time
+    redact_email,
+    gmail_send_email,
+    gmail_list_messages,
+    calendar_list_events,
+    calendar_create_event,
+    send_message,
+    get_vitae_info,
+    get_current_date_and_time,
 )
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.tools.gmail.utils import (
-    build_resource_service, get_gmail_credentials,
+    build_resource_service,
+    get_gmail_credentials,
 )
 from langchain_community.agent_toolkits import GmailToolkit
 import telebot
@@ -34,13 +40,9 @@ class State(TypedDict):
 
 def load_graph():
     # Inicializamos un LLM de OpenAI
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0
-    )
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-
-    tools = []    
+    tools = []
     search = TavilySearchResults(max_results=2)
     tools.append(search)
     tools.append(redact_email)
@@ -56,17 +58,28 @@ def load_graph():
             ("system", "Tu eres Pancho, el asistente virtual de Cristian Montoya."),
             ("system", "Debes atender con cordialidad a todas sus solicitudes."),
             ("system", "Siempre dirígete a él siempre por su nombre."),
-            ("system", "Si requieres más información para responder, debes solicitársela."),
-            ("system", "Antes de crear un evento en calendario o enviar un correo, debes buscar la fecha y hora actual para entender el contexto en tiempo real."),
-            ("system", "Antes de enviar un correo o crear un evento debes mostrar los detalles para que el usuario confirme la ejecución de la tarea."),
+            (
+                "system",
+                "Si requieres más información para responder, debes solicitársela.",
+            ),
+            (
+                "system",
+                "Antes de crear un evento en calendario o enviar un correo, debes buscar la fecha y hora actual para entender el contexto en tiempo real.",
+            ),
+            (
+                "system",
+                "Antes de enviar un correo o crear un evento debes mostrar los detalles para que el usuario confirme la ejecución de la tarea.",
+            ),
             ("placeholder", "{messages}"),
         ]
     )
 
     graph = create_react_agent(
-        model=llm, tools=tools, state_schema=State,
+        model=llm,
+        tools=tools,
+        state_schema=State,
         state_modifier=system_prompt,
-        checkpointer=MemorySaver()
+        checkpointer=MemorySaver(),
     )
     return graph
 
@@ -84,7 +97,7 @@ bot = telebot.TeleBot(API_TOKEN_BOT)
 wellcome = "¡Bienvenido! ¿Cómo puedo ayudarte?"
 
 
-@bot.message_handler(commands=['help', 'start'])
+@bot.message_handler(commands=["help", "start"])
 def send_welcome(message):
     bot.reply_to(message, wellcome, parse_mode="Markdown")
 
@@ -104,7 +117,7 @@ def bot_mensajes(message):
         downloaded_file = bot.download_file(file_info.file_path)
         file_path = "audios/nota_de_voz.ogg"
 
-        with open(file_path, 'wb') as new_file:
+        with open(file_path, "wb") as new_file:
             new_file.write(downloaded_file)
 
         pregunta_usuario = whisper_api(file_path)
@@ -113,9 +126,9 @@ def bot_mensajes(message):
         llm = langChainTools.load_llm_openai()
 
         events = graph.stream(
-            {"messages": [("user", pregunta_usuario)],
-             "is_last_step": False},
-            config, stream_mode="updates"
+            {"messages": [("user", pregunta_usuario)], "is_last_step": False},
+            config,
+            stream_mode="updates",
         )
 
         for event in events:
@@ -125,8 +138,7 @@ def bot_mensajes(message):
                 # Verificar si la respuesta no está vacía
                 if respuesta_agente:
                     bot.send_message(
-                        message.chat.id, respuesta_agente,
-                        parse_mode="Markdown"
+                        message.chat.id, respuesta_agente, parse_mode="Markdown"
                     )
 
                     # path_voice: str = tts_api(respuesta_agente)
@@ -143,9 +155,9 @@ def bot_mensajes(message):
         llm = langChainTools.load_llm_openai()
 
         events = graph.stream(
-            {"messages": [("user", pregunta_usuario)],
-             "is_last_step": False},
-            config, stream_mode="updates"
+            {"messages": [("user", pregunta_usuario)], "is_last_step": False},
+            config,
+            stream_mode="updates",
         )
 
         for event in events:
@@ -155,8 +167,7 @@ def bot_mensajes(message):
                 # Verificar si la respuesta no está vacía
                 if respuesta_agente:
                     bot.send_message(
-                        message.chat.id, respuesta_agente,
-                        parse_mode="Markdown"
+                        message.chat.id, respuesta_agente, parse_mode="Markdown"
                     )
 
                     # path_voice: str = tts_api(respuesta_agente)

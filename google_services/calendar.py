@@ -5,14 +5,14 @@ Módulo para interactuar con Google Calendar API.
 from datetime import datetime
 from typing import List, Optional, Dict
 from googleapiclient.discovery import build
-from .auth import GoogleAuth, CALENDAR_SCOPES
+from .auth import default_auth, CALENDAR_SCOPES
 
 class GoogleCalendar:
-    """Clase para manejar operaciones con Google Calendar."""
+    """Clase para interactuar con Google Calendar API."""
     
     def __init__(self):
         """Inicializa el servicio de Calendar."""
-        self.auth = GoogleAuth(CALENDAR_SCOPES)
+        self.auth = default_auth
         self.service = None
     
     def _get_service(self):
