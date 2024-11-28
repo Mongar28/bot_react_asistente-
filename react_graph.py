@@ -8,10 +8,11 @@ from langgraph.prebuilt import create_react_agent
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_tools.agent_tools import (
-    redact_email, list_calendar_events,
-    create_calendar_event, send_message,
-    get_vitae_info, get_current_date_and_time
+    redact_email, gmail_send_email, gmail_list_messages,
+    calendar_list_events, calendar_create_event,
+    send_message, get_vitae_info, get_current_date_and_time
 )
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.tools.gmail.utils import (
     build_resource_service, get_gmail_credentials,
 )
@@ -21,7 +22,6 @@ from dotenv import load_dotenv
 import os
 from api_openai.whisper import whisper_api, tts_api
 from langchain_tools.agent_tools import LangChainTools
-from langchain_core.messages import AIMessage, HumanMessage
 
 
 load_dotenv()
@@ -39,23 +39,15 @@ def load_graph():
         temperature=0
     )
 
-    toolkit = GmailToolkit()
 
-    credentials = get_gmail_credentials(
-        token_file="token.json",
-        scopes=["https://mail.google.com/"],
-        client_secrets_file="credentials.json",
-    )
-    api_resource = build_resource_service(credentials=credentials)
-    toolkit = GmailToolkit(api_resource=api_resource)
-
-    tools = toolkit.get_tools()
-
+    tools = []    
     search = TavilySearchResults(max_results=2)
     tools.append(search)
     tools.append(redact_email)
-    tools.append(list_calendar_events)
-    tools.append(create_calendar_event)
+    tools.append(gmail_send_email)
+    tools.append(gmail_list_messages)
+    tools.append(calendar_list_events)
+    tools.append(calendar_create_event)
     tools.append(get_vitae_info)
     tools.append(get_current_date_and_time)
 
@@ -137,9 +129,9 @@ def bot_mensajes(message):
                         parse_mode="Markdown"
                     )
 
-                    path_voice: str = tts_api(respuesta_agente)
-                    with open(path_voice, 'rb') as voice:
-                        bot.send_voice(message.chat.id, voice=voice)
+                    # path_voice: str = tts_api(respuesta_agente)
+                    # with open(path_voice, 'rb') as voice:
+                    #     bot.send_voice(message.chat.id, voice=voice)
 
                     history.append(HumanMessage(content=pregunta_usuario))
                     history.append(AIMessage(content=respuesta_agente))
@@ -167,9 +159,9 @@ def bot_mensajes(message):
                         parse_mode="Markdown"
                     )
 
-                    path_voice: str = tts_api(respuesta_agente)
-                    with open(path_voice, 'rb') as voice:
-                        bot.send_voice(message.chat.id, voice=voice)
+                    # path_voice: str = tts_api(respuesta_agente)
+                    # with open(path_voice, 'rb') as voice:
+                    #     bot.send_voice(message.chat.id, voice=voice)
 
                     history.append(HumanMessage(content=pregunta_usuario))
                     history.append(AIMessage(content=respuesta_agente))

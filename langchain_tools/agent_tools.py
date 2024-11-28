@@ -16,6 +16,8 @@ from datetime import datetime
 import pytz
 import telebot
 import os
+from google_services.gmail import Gmail
+from google_services.calendar import GoogleCalendar
 
 
 class LangChainTools:
@@ -51,213 +53,6 @@ def redact_email(topic: str) -> str:
     response = llm.invoke(prompt)
     return response
 
-
-@tool
-def list_calendar_events(max_results: int = 50) -> list:
-    """Use this tool to list upcoming calendar events."""
-
-    # Define los alcances que necesitamos para acceder a la API de Google Calendar
-    SCOPES = ['https://www.googleapis.com/auth/calendar']
-
-    creds = None
-
-    # La ruta al archivo token.json, que contiene los tokens de acceso y actualización
-    token_path = 'token_2.json'
-
-    # La ruta al archivo de credenciales de OAuth 2.1
-    creds_path = 'credentials_2.json'
-
-    # Cargar las credenciales desde el archivo token.json, si existe
-    if os.path.exists(token_path):
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-
-    # Si no hay credenciales válidas disponibles, inicia el flujo de OAuth 2.0 para obtener nuevas credenciales
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                creds_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-
-        # Guarda las credenciales para la próxima ejecución
-        with open(token_path, 'w') as token_file:
-            token_file.write(creds.to_json())
-
-    # Construye el objeto de servicio para interactuar con la API de Google Calendar
-    service = build('calendar', 'v3', credentials=creds)
-
-    # Identificador del calendario que deseas consultar. 'primary' se refiere al calendario principal del usuario.
-    calendar_id = 'primary'
-
-    # Realiza una llamada a la API para obtener una lista de eventos.
-    now = datetime.now(timezone.utc).isoformat()  # 'Z' indica UTC
-    events_result = service.events().list(
-        calendarId=calendar_id, timeMin=now, maxResults=max_results, singleEvents=True,
-        orderBy='startTime').execute()
-
-    # Extrae los eventos de la respuesta de la API.
-    events = events_result.get('items', [])
-
-    # Si no se encuentran eventos, imprime un mensaje.
-    if not events:
-        print('No upcoming events found.')
-        return
-
-    # Recorre la lista de eventos y muestra la hora de inicio y el resumen de cada evento.
-    for event in events:
-        # Obtiene la fecha y hora de inicio del evento. Puede ser 'dateTime' o 'date'.
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        # Imprime la hora de inicio y el resumen (título) del evento.
-        print(start, event['summary'])
-
-    return events
-
-
-@tool
-def create_calendar_event(
-        title: str, start_time: datetime,
-        end_time: datetime, attendees: list) -> dict:
-    """Use this tool to create an event in the calendar.
-
-    Parameters:
-    - title: str - The title of the event.
-    - start_time: datetime - The start time of the event.
-    - end_time: datetime - The end time of the event.
-    - attendees: list - A list of attendee emails (required).
-
-    Returns:
-    - dict - The created event details.
-    """
-
-    if not attendees:
-        raise ValueError(
-            "El campo 'attendees' es obligatorio y no puede estar vacío.")
-
-    SCOPES = ['https://www.googleapis.com/auth/calendar']
-    creds = None
-
-    # La ruta al archivo token.json, que contiene los tokens de acceso y actualización
-    token_path = 'token_2.json'
-
-    # La ruta al archivo de credenciales de OAuth 2.0
-    creds_path = 'credentials_2.json'
-
-    # Cargar las credenciales desde el archivo token.json, si existe
-    if os.path.exists(token_path):
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-
-    # Si no hay credenciales válidas disponibles, inicia el flujo de OAuth 2.0 para obtener nuevas credenciales
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                creds_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-
-        # Guarda las credenciales para la próxima ejecución
-        with open(token_path, 'w') as token_file:
-            token_file.write(creds.to_json())
-
-    # Construye el objeto de servicio para interactuar con la API de Google Calendar
-    service = build('calendar', 'v3', credentials=creds)
-
-    # Validar y filtrar asistentes
-    valid_attendees = []
-    for email in attendees:
-        if isinstance(email, str) and '@' in email:
-            valid_attendees.append({'email': email})
-        else:
-            raise ValueError(f"'{email}' no es un correo electrónico válido.")
-
-    # Identificador del calendario que deseas modificar. 'primary' se refiere al calendario principal del usuario.
-    calendar_id = 'primary'
-
-    # Define el cuerpo del evento con el título, la hora de inicio y la hora de finalización
-    event = {
-        'summary': title,
-        'start': {
-            'dateTime': start_time.strftime('%Y-%m-%dT%H:%M:%S'),
-            'timeZone': 'America/Bogota',
-        },
-        'end': {
-            'dateTime': end_time.strftime('%Y-%m-%dT%H:%M:%S'),
-            'timeZone': 'America/Bogota',
-        },
-        'attendees': valid_attendees
-    }
-
-    try:
-        # Crea el evento en el calendario
-        event = service.events().insert(calendarId=calendar_id, body=event).execute()
-        print('Event created: %s' % (event.get('htmlLink')))
-    except Exception as e:
-        print(f"Error al crear el evento: {e}")
-        return {}
-
-    return event
-
-
-@tool
-def create_quick_add_event(quick_add_text: str):
-    """Use this tool to create events in the calendar from natural language, 
-    using the Quick Add feature of Google Calendar.
-    """
-    quick_add_text: str = input(
-        "- Escribe la descripcion del evento que quieres crear: ")
-    SCOPES = ['https://www.googleapis.com/auth/calendar']
-
-    creds = None
-
-    # La ruta al archivo token.json, que contiene los tokens de acceso y actualización
-    token_path = 'token_2.json'
-
-    # La ruta al archivo de credenciales de OAuth 2.0
-    creds_path = 'credentials_2.json'
-
-    # Cargar las credenciales desde el archivo token.json, si existe
-    if os.path.exists(token_path):
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-
-    # Si no hay credenciales válidas disponibles, inicia el flujo de OAuth 2.0 para obtener nuevas credenciales
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                creds_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-
-        # Guarda las credenciales para la próxima ejecución
-        with open(token_path, 'w') as token_file:
-            token_file.write(creds.to_json())
-
-    # Construye el objeto de servicio para interactuar con la API de Google Calendar
-    service = build('calendar', 'v3', credentials=creds)
-
-    # Identificador del calendario que deseas modificar. 'primary' se refiere al calendario principal del usuario.
-    calendar_id = 'primary'
-
-    # Crea el evento utilizando la funcionalidad Quick Add
-    event = service.events().quickAdd(
-        calendarId=calendar_id, text=quick_add_text).execute()
-
-    print('Event created: %s' % (event.get('htmlLink')))
-
-    return event
-
-
-# @tool
-# def send_message(message: str):
-#     """Use this function when you need to communicate with the user."""
-#     # Configuración del bot
-#     load_dotenv()
-#     API_TOKEN_BOT = os.getenv("API_TOKEN_BOT")
-#     bot = telebot.TeleBot(API_TOKEN_BOT)
-#
-#     bot.send_message(chat_id="5076346205", text=message)
-#
 
 @tool
 def send_message(message: str):
@@ -315,3 +110,75 @@ def get_current_date_and_time():
     bogota_tz = pytz.timezone('America/Bogota')
     current_date_and_time = datetime.now(bogota_tz)
     return current_date_and_time.strftime('%Y-%m-%d %H:%M:%S')
+
+
+@tool
+def gmail_send_email(to: str, subject: str, body: str) -> dict:
+    """
+    Use this tool to send an email using Gmail.
+    
+    Args:
+        to: Email address of the recipient
+        subject: Subject of the email
+        body: Content of the email
+        
+    Returns:
+        dict: Response from the Gmail service
+    """
+    gmail = Gmail()
+    return gmail.send_email(to=to, subject=subject, body=body)
+
+
+@tool
+def gmail_list_messages(max_results: int = 5) -> list:
+    """
+    Use this tool to list recent messages from Gmail inbox.
+    
+    Args:
+        max_results: Maximum number of messages to return (default: 5)
+        
+    Returns:
+        list: List of recent messages
+    """
+    gmail = Gmail()
+    return gmail.list_messages(max_results=max_results)
+
+
+@tool
+def calendar_list_events(max_results: int = 10) -> list:
+    """
+    Use this tool to list upcoming calendar events.
+    
+    Args:
+        max_results: Maximum number of events to return (default: 10)
+        
+    Returns:
+        list: List of upcoming events
+    """
+    calendar = GoogleCalendar()
+    return calendar.list_events(max_results=max_results)
+
+
+@tool
+def calendar_create_event(summary: str, start_time: str, end_time: str, description: str = None, location: str = None) -> dict:
+    """
+    Use this tool to create a new calendar event.
+    
+    Args:
+        summary: Title of the event
+        start_time: Start time in ISO format
+        end_time: End time in ISO format
+        description: Optional description of the event
+        location: Optional location of the event
+        
+    Returns:
+        dict: Created event details
+    """
+    calendar = GoogleCalendar()
+    return calendar.create_event(
+        summary=summary,
+        start_time=start_time,
+        end_time=end_time,
+        description=description,
+        location=location
+    )
